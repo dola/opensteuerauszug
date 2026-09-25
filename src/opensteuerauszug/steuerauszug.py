@@ -27,6 +27,7 @@ from .calculate.fill_in_tax_value_calculator import FillInTaxValueCalculator
 from .calculate.payment_reconciliation_calculator import PaymentReconciliationCalculator
 from .calculate.withholding_cap_calculator import WithholdingCapCalculator
 from .util.known_issues import is_known_issue
+from .util.warnings_json import write_warnings_json
 from .core.exchange_rate_provider import ExchangeRateProvider
 from .core.kursliste_manager import KurslisteManager
 from .core.kursliste_exchange_rate_provider import KurslisteExchangeRateProvider
@@ -128,6 +129,11 @@ def process(
     ),
     final_xml_path: Optional[Path] = typer.Option(
         None, "--xml-output", help="Write the final tax statement XML to this file."
+    ),
+    warnings_json_path: Optional[Path] = typer.Option(
+        None,
+        "--warnings-json",
+        help="Write critical warnings and payment reconciliation rows to this file as JSON.",
     ),
     raw_import: bool = typer.Option(
         False,
@@ -1068,6 +1074,16 @@ def process(
                 print(f"Final XML written to {final_xml_path}")
             except Exception as e:
                 print(f"Failed to write final XML to {final_xml_path}: {e}")
+                raise typer.Exit(code=1)
+
+        if warnings_json_path:
+            if statement is None:
+                raise ValueError("TaxStatement model not loaded. Cannot write warnings JSON.")
+            try:
+                write_warnings_json(statement, warnings_json_path)
+                print(f"Warnings JSON written to {warnings_json_path}")
+            except Exception as e:
+                print(f"Failed to write warnings JSON to {warnings_json_path}: {e}")
                 raise typer.Exit(code=1)
 
         print("Processing finished successfully.")
